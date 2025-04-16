@@ -303,42 +303,38 @@ def import_ctf(backup, erase=True):
                         set_import_status(f"inserting {member} {i}/{count}")
                         # This is a hack to get SQLite to properly accept datetime values from dataset
                         # See Issue #246
-                        try:
+                        if sqlite:
                             direct_table = get_class_by_tablename(table.name)
-                        except Exception:
-                            # fallback patch for plugin tables
-                            direct_table = table.table
-
-                        for k, v in entry.items():
-                            if isinstance(v, string_types):
-                                # We only want to apply this hack to columns that are expecting a datetime object
-                                try:
-                                    is_dt_column = (
-                                        type(getattr(direct_table, k).type)
-                                        == sqltypes.DateTime
-                                    )
-                                except AttributeError:
-                                    is_dt_column = False
-
-                                # If the table is expecting a datetime, we should check if the string is one and convert it
-                                if is_dt_column:
-                                    match = re.match(
-                                        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d",
-                                        v,
-                                    )
-                                    if match:
-                                        entry[k] = datetime.datetime.strptime(
-                                            v, "%Y-%m-%dT%H:%M:%S.%f"
+                            for k, v in entry.items():
+                                if isinstance(v, string_types):
+                                    # We only want to apply this hack to columns that are expecting a datetime object
+                                    try:
+                                        is_dt_column = (
+                                            type(getattr(direct_table, k).type)
+                                            == sqltypes.DateTime
                                         )
-                                        continue
-                                    match = re.match(
-                                        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", v
-                                    )
-                                    if match:
-                                        entry[k] = datetime.datetime.strptime(
-                                            v, "%Y-%m-%dT%H:%M:%S"
+                                    except AttributeError:
+                                        is_dt_column = False
+
+                                    # If the table is expecting a datetime, we should check if the string is one and convert it
+                                    if is_dt_column:
+                                        match = re.match(
+                                            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d",
+                                            v,
                                         )
-                                        continue
+                                        if match:
+                                            entry[k] = datetime.datetime.strptime(
+                                                v, "%Y-%m-%dT%H:%M:%S.%f"
+                                            )
+                                            continue
+                                        match = re.match(
+                                            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", v
+                                        )
+                                        if match:
+                                            entry[k] = datetime.datetime.strptime(
+                                                v, "%Y-%m-%dT%H:%M:%S"
+                                            )
+                                            continue
                         # From v2.0.0 to v2.1.0 requirements could have been a string or JSON because of a SQLAlchemy issue
                         # This is a hack to ensure we can still accept older exports. See #867
                         if member in (
