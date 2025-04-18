@@ -121,7 +121,9 @@ class UserList(Resource):
                 .paginate(per_page=50, max_per_page=100, error_out=False)
             )
 
-        response = UserSchema(view="user", many=True).dump(users.items)
+        view = "user" if not is_admin() else "admin"
+
+        response = UserSchema(view=view, many=True).dump(users.items)
 
         if response.errors:
             return {"success": False, "errors": response.errors}, 400
